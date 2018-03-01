@@ -1,20 +1,15 @@
-FROM ubuntu:12.04
+FROM 759271050724.dkr.ecr.us-east-1.amazonaws.com/iv-jetty-base-ami:latest
+# Download App Specific Config Files
+ENV JETTY_BASE /usr/local/jetty/jetty_base
+RUN aws s3 sync s3://ivrepo/docker-app-wise/rcview/ $JETTY_BASE/
+ENV JETTY_HOME /usr/local/jetty
+ENV PATH $JETTY_HOME/bin:$PATH
 
-# Install dependencies
-RUN apt-get update -y
-RUN apt-get install -y git curl apache2 php5 libapache2-mod-php5 php5-mcrypt php5-mysql
+ENV TMPDIR /usr/local/tmp
+RUN chown -R jetty:jetty "$TMPDIR"
+RUN chown -R jetty:jetty /usr/local/jetty/jetty_base/logs
 
-# Install app
-RUN rm -rf /var/www/*
-ADD src /var/www
-
-# Configure apache
-RUN a2enmod rewrite
-RUN chown -R www-data:www-data /var/www
-ENV APACHE_RUN_USER www-data
-ENV APACHE_RUN_GROUP www-data
-ENV APACHE_LOG_DIR /var/log/apache2
-
-EXPOSE 80
-
-CMD ["/usr/sbin/apache2", "-D",  "FOREGROUND"]
+USER jetty
+EXPOSE 8080
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["java","-jar","/usr/local/jetty/start.jar"]
